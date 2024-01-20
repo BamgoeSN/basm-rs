@@ -1,8 +1,6 @@
-use basm::platform::io::{Reader, ReaderTrait, Writer, Print};
+use basm::prelude::*;
+
 pub fn main() {
-    let mut reader: Reader = Default::default();
-    let mut writer: Writer = Default::default();
-    let a = reader.i64();
-    let b = reader.i64();
-    writer.println(a + b);
+    let mut sc: Reader = Default::default();
+    let mut wr: Writer = Default::default();
 }
