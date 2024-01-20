@@ -15,7 +15,12 @@ dap.configurations.rust = {
 		type = "codelldb",
 		request = "launch",
 		program = function()
-			io.popen("cargo build")
+			local job = require("plenary.job")
+			job:new({
+				command = 'cargo',
+				args = {'build'},
+				cwd = vim.fn.getcwd(),
+			}):sync()
 			return vim.fn.getcwd() .. "/target/debug/basm"
 		end,
 		cwd = "${workspaceFolder}",
