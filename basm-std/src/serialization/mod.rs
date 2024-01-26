@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 /// Special type that maps to `std::pair<T1, T2>`
 /// on function implementation problems.
 /// 
