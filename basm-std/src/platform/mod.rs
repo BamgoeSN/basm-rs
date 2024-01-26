@@ -1,3 +1,5 @@
+#![allow(clippy::missing_safety_doc)]
+
 #[cfg(all(not(test), feature = "codegen"))]
 pub mod codegen;
 #[cfg(not(test))]
