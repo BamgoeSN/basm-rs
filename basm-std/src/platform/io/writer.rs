@@ -530,6 +530,7 @@ impl<'a, const N: usize> Print<Arguments<'a>> for Writer<N> {
 #[macro_export]
 macro_rules! bprint {
     ($writer:tt, $($arg:tt)*) => {{
+        use $crate::platform::io::Print;
         $writer.print(core::format_args!($($arg)*));
     }};
 }
@@ -537,6 +538,7 @@ macro_rules! bprint {
 #[macro_export]
 macro_rules! bprintln {
     ($writer:tt, $($arg:tt)*) => {{
+        use $crate::platform::io::Print;
         $writer.println(core::format_args!($($arg)*));
     }};
 }
