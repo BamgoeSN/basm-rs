@@ -1,5 +1,6 @@
 unstable_features = true
 
+newline_style="Native"
 fn_single_line = true
 where_single_line = true
 brace_style = "PreferSameLine"
