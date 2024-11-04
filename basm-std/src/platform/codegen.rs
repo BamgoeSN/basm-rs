@@ -1,5 +1,5 @@
 #[cfg(not(target_arch = "wasm32"))]
-use core::arch::asm;
+use core::arch::naked_asm;
 
 use crate::platform;
 #[cfg(not(any(
@@ -53,7 +53,9 @@ use crate::platform::loader;
 compile_error!("The target architecture is not supported.");
 
 #[cfg(all(target_arch = "aarch64", feature = "submit"))]
-compile_error!("AArch64 (aarch64-apple-darwin) is only supported for local execution, not submission; use x86-64 to submit.");
+compile_error!(
+    "AArch64 (aarch64-apple-darwin) is only supported for local execution, not submission; use x86-64 to submit."
+);
 
 #[cfg(all(target_arch = "x86_64", not(target_os = "windows")))]
 #[unsafe(no_mangle)]
@@ -64,7 +66,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         //   on the 16-byte boundary BEFORE `call` instruction.
         // However, when called as the entrypoint by the Linux OS,
         //   RSP will be 16-byte aligned AFTER `call` instruction.
-        asm!(
+        naked_asm!(
             "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
             "mov    rbx, rcx",                  // Save PLATFORM_DATA table
             "jnc    2f",
@@ -87,8 +89,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
             "pop    rcx",                       // short form of "add rsp, 8"
             "ret",
             sym loader::amd64_elf::relocate,
-            sym _start_rust,
-            options(noreturn)
+            sym _start_rust
         );
     }
 }
@@ -97,13 +98,13 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
 #[allow(non_snake_case)]
 #[link(name = "kernel32")]
 unsafe extern "win64" {
-    fn LoadLibraryA(lpLibFileName: *const u8) -> usize;
-    fn GetProcAddress(hModule: usize, lpProcName: *const u8) -> usize;
+    fn LoadLibraryA(lpLibFileName: *const i8) -> usize;
+    fn GetProcAddress(hModule: usize, lpProcName: *const i8) -> usize;
 }
 
 #[cfg(target_os = "windows")]
 unsafe extern "sysv64" fn get_kernel32() -> usize {
-    unsafe { LoadLibraryA(b"KERNEL32\0".as_ptr()) }
+    unsafe { LoadLibraryA(c"KERNEL32".as_ptr()) }
 }
 
 #[cfg(all(target_os = "windows", target_env = "gnu"))]
@@ -129,7 +130,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
         // Also, when called as the entrypoint by the Windows OS,
         //   RSP will be 16-byte aligned BEFORE `call` instruction.
         // In addition, we need to provide a `shadow space` of 32 bytes.
-        asm!(
+        naked_asm!(
             "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
             "enter  64, 0",                     // 64 = 88 - 32 (tables) + 8 (alignment)
             "mov    rbx, rcx",                  // save rcx as rbx is non-volatile (callee-saved)
@@ -175,8 +176,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
             sym get_kernel32,
             sym GetProcAddress,
             sym chkstk_gnu::___chkstk_ms,
-            sym chkstk_gnu::___chkstk,
-            options(noreturn)
+            sym chkstk_gnu::___chkstk
         );
     }
 }
@@ -187,7 +187,7 @@ pub unsafe extern "win64" fn _basm_start() -> ! {
 #[unsafe(link_section = ".data")]
 unsafe extern "cdecl" fn _get_start_offset() -> ! {
     unsafe {
-        asm!("lea    eax, [_basm_start]", "ret", options(noreturn));
+        naked_asm!("lea    eax, [_basm_start]", "ret");
     }
 }
 
@@ -197,7 +197,7 @@ unsafe extern "cdecl" fn _get_start_offset() -> ! {
 #[unsafe(link_section = ".data")]
 unsafe extern "cdecl" fn _get_dynamic_section_offset() -> ! {
     unsafe {
-        asm!("lea    eax, [_DYNAMIC]", "ret", options(noreturn));
+        naked_asm!("lea    eax, [_DYNAMIC]", "ret");
     }
 }
 
@@ -208,7 +208,7 @@ pub unsafe extern "cdecl" fn _basm_start() -> ! {
     unsafe {
         // i386 System V ABI requires ESP to be aligned
         //   on the 16-byte boundary BEFORE `call` instruction
-        asm!(
+        naked_asm!(
             "clc",                              // CF=0 (running without loader) / CF=1 (running with loader)
             "jc     2f",
             "sub    esp, 44",                   // 44 = 40 + 4; PLATFORM_DATA ptr (4 bytes, pushed later) + PLATFORM_DATA (40 (+ 16 = 56 bytes)) + alignment (4 bytes wasted)
@@ -246,8 +246,7 @@ pub unsafe extern "cdecl" fn _basm_start() -> ! {
             sym loader::i686_elf::relocate,
             sym _start_rust,
             sym _get_start_offset,
-            sym _get_dynamic_section_offset,
-            options(noreturn)
+            sym _get_dynamic_section_offset
         );
     }
 }
@@ -263,12 +262,12 @@ pub extern "C" fn _basm_start() {
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[naked]
 #[repr(align(8))]
 pub unsafe extern "C" fn _basm_start() -> ! {
     unsafe {
-        asm!(
+        naked_asm!(
             "sub    sp, sp, #96",
             "mov    x0, #4",    // 4 = ENV_ID_MACOS
             "str    x0, [sp, #(8 * 0)]",
@@ -276,8 +275,7 @@ pub unsafe extern "C" fn _basm_start() -> ! {
             "str    x0, [sp, #(8 * 1)]",
             "mov    x0, sp",
             "bl     {0}",
-            sym _start_rust,
-            options(noreturn)
+            sym _start_rust
         )
     }
 }
@@ -287,7 +285,7 @@ pub unsafe extern "C" fn _basm_start() -> ! {
 #[naked]
 pub unsafe extern "C" fn _basm_start() -> ! {
     unsafe {
-        asm!(
+        naked_asm!(
             "adrp   x0, __ehdr_start",
             "add    x0, x0, #:lo12:__ehdr_start",
             "adrp   x1, _DYNAMIC",
@@ -301,8 +299,7 @@ pub unsafe extern "C" fn _basm_start() -> ! {
             "mov    x0, sp",
             "bl     {1}",
             sym loader::aarch64_elf::relocate,
-            sym _start_rust,
-            options(noreturn)
+            sym _start_rust
         )
     }
 }
@@ -332,7 +329,7 @@ fn _start_rust(platform_data: usize) -> i32 {
 #[cfg(all(target_arch = "x86_64", target_os = "windows"))]
 pub unsafe extern "win64" fn __chkstk() -> ! {
     unsafe {
-        asm!(
+        naked_asm!(
             "push   rcx",
             "push   rax",
             "cmp    rax, 4096",
@@ -349,8 +346,7 @@ pub unsafe extern "win64" fn __chkstk() -> ! {
             "test   DWORD PTR [rcx], ecx", // just touches the memory address; no meaning in itself
             "pop    rax",
             "pop    rcx",
-            "ret",
-            options(noreturn)
+            "ret"
         );
     }
 }

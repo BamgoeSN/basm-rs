@@ -1310,7 +1310,7 @@ impl<A: DlmallocAllocator> Dlmalloc<A> {
                 pad += self.top_foot_size();
                 if self.topsize > pad {
                     let unit = DEFAULT_GRANULARITY;
-                    let extra = ((self.topsize - pad + unit - 1) / unit - 1) * unit;
+                    let extra = ((self.topsize - pad).div_ceil(unit) - 1) * unit;
                     let sp = self.segment_holding(self.top as *mut u8);
                     debug_assert!(!sp.is_null());
 
@@ -1847,11 +1847,7 @@ impl TreeChunk {
     unsafe fn leftmost_child(me: *mut TreeChunk) -> *mut TreeChunk {
         unsafe {
             let left = (*me).child[0];
-            if left.is_null() {
-                (*me).child[1]
-            } else {
-                left
-            }
+            if left.is_null() { (*me).child[1] } else { left }
         }
     }
 

@@ -1,5 +1,3 @@
-#![allow(clippy::missing_safety_doc)]
-
 #[cfg(not(test))]
 pub mod allocator;
 #[cfg(all(not(test), feature = "codegen"))]
